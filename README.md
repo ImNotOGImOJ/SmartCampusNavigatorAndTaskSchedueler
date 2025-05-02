@@ -16,11 +16,15 @@ Backend Logic:
 - Dijkstra’s algorithm implemented to compute shortest paths 
 - KMP algorithm used to search for building names
 
-GUI (Tkinter-based):
+GUI (Tkinter-based) 1st Iteration:
 - Dropdown menus for start and end buildings (
 - Search bar to find building names
 - Results display with shortest path and distance
 - Input validation included
+
+GUI (PYQT5-based) 2nd Iteration:
+- Basic text boxes for task input and task list
+- side box for campus map with nodes
 
 Development Progress Timeline:
 April 28:
