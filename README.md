@@ -1,4 +1,4 @@
-Smart Campus Navigator - Progress Report and planning
+Smart Campus Navigator - Progress Report and planning 
 --------------------------------------------------
 
 Project Overview:
