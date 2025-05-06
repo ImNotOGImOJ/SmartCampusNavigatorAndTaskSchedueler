@@ -143,32 +143,58 @@ class TaskScheduler(QWidget):
         
         # Clear inputs
         self.task_name_input.clear()
-        
+
     def remove_task(self):
         selected_row = self.task_table.currentRow()
         if selected_row >= 0:
             self.task_table.removeRow(selected_row)
             self.tasks.pop(selected_row)
             
+    def sorting_activity(self, activities):
+        # Step 1: Sort tasks by end time (greedy approach)
+        activities.sort(key=lambda x: x.end_time)  # Sort by end time
+
+        # Step 2: Initialize the selected activities list with the first task
+        selected_activities = [activities[0]]
+        last_selected = activities[0]
+
+        # Step 3: Iterate through the remaining activities
+        for i in range(1, len(activities)):
+            # Step 4: Check if the start time of the current activity is after the last selected task's end time
+            if activities[i].start_time >= last_selected.end_time:
+                selected_activities.append(activities[i])
+                last_selected = activities[i]
+
+        return selected_activities
+
     def optimize_schedule(self):
         if not self.tasks:
             self.schedule_results.setText("No tasks to optimize")
             return
-            
-        # Sort tasks by priority (highest first)
-        sorted_tasks = sorted(self.tasks, key=lambda t: t.get_priority_value(), reverse=True)
         
-        # Generate schedule text
+        # Step 1: Sort tasks by priority (highest first)
+        sorted_tasks = sorted(self.tasks, key=lambda t: t.get_priority_value(), reverse=True)
+
+        # Step 2: Use the greedy algorithm to get the non-overlapping tasks
+        selected_tasks = self.sorting_activity(sorted_tasks)
+
+        # Step 3: Display optimized schedule
         schedule_text = "Optimized Schedule:\n\n"
-        for i, task in enumerate(sorted_tasks):
+        for i, task in enumerate(selected_tasks):
             schedule_text += f"{i+1}. {task.name} ({task.priority})\n"
             schedule_text += f"   Time: {task.start_time.toString('HH:mm')} - {task.end_time.toString('HH:mm')}\n"
             schedule_text += f"   Duration: {task.get_duration()} minutes\n\n"
-            
+
         self.schedule_results.setText(schedule_text)
         
     def go_back(self):
         from main_menu import MainPage  # Import here to avoid circular import
         self.main_menu = MainPage()
         self.main_menu.show()
-        self.close()
+        self.close()  # Close the current window
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = TaskScheduler()
+    window.show()
+    sys.exit(app.exec_())
