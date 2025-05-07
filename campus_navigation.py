@@ -274,29 +274,49 @@ class CampusNavigation(QWidget):
         self.main_menu = MainPage()
         self.main_menu.show()
         self.close()
+#--------------------Dijkstra on self.graphWidget.graph
+    def _dijkstra(self, start, dest):
+        """
+        Returns (path:list, total_weight:float) from start→dest using
+        a hand‑rolled Dijkstra on the weighted graph in self.graphWidget.graph.
+        If no path, returns ([], inf).
+        """
+        G = self.graphWidget.graph            # networkx.Graph
+        dist  = {v: float('inf') for v in G.nodes}
+        prev  = {}
+        dist[start] = 0
 
-    def dijka(self, source):
-        graph = self.graphWidgets.graph
-        n = 5 #NUMBER OF NODES HERE (FINALIZE NODE COUNT AND MAP)
-        dist = [float('inf')] * n
-        dist[source] = 0
-        pq = [(0, source)]
-        
-        while pq:
-            current_dist, u = heapq.heappop(pq)
-            if current_dist > dist[u]:
-                continue
-            for v, weight in graph[u]:
-                if dist[u] + weight < dist[v]:
-                    dist[v] = dist[u] + weight
-                    heapq.heappush(pq, (dist[v], v))
-        return dist
+        heap = [(0, start)]
+        while heap:
+            d_u, u = heapq.heappop(heap)
+            if u == dest: break
+            if d_u > dist[u]: continue        # stale entry
+            for v, attr in G[u].items():
+                w = attr.get('weight', 1)
+                alt = d_u + w
+                if alt < dist[v]:
+                    dist[v] = alt
+                    prev[v] = u
+                    heapq.heappush(heap, (alt, v))
 
+        # reconstruct path
+        if dest not in prev and start != dest:
+            return [], float('inf')
+        path = [dest]
+        while path[-1] != start:
+            path.append(prev[path[-1]])
+        path.reverse()
+        return path, dist[dest]
+
+    # inside CampusNavigation
     def handle_hover(self):
         start = self.start_combo.currentText()
-        dest = self.dest_combo.currentText()
-        # dijka's algo
+        dest  = self.dest_combo.currentText()
 
-        path = self.dijka(start, dest)
-        
+        # skip if either node isn’t in the mini‑graph
+        if start not in self.graphWidget.graph or dest not in self.graphWidget.graph:
+            self.graphWidget.highlight_path([])     # clear highlight
+            return
+
+        path, _ = self._dijkstra(start, dest)
         self.graphWidget.highlight_path(path)
