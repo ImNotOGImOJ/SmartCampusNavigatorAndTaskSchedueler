@@ -1,9 +1,10 @@
 import sys
 import networkx as nx
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.backend_bases import MouseEvent
+import matplotlib.image as mpimg
 
 class GraphWidget(QWidget):
     def __init__(self, parent=None):
@@ -12,6 +13,10 @@ class GraphWidget(QWidget):
         self.figure = Figure()
         self.canvas = FigureCanvas(self.figure)
         self.ax = self.figure.add_subplot(111)
+
+        self.img = mpimg.imread('campusMap1.png')
+        x_min, x_max, y_min, y_max = 0, 900, 0, 1500
+        self.extent=[x_min, x_max, y_min, y_max]
 
         layout = QVBoxLayout()
         layout.addWidget(self.canvas)
@@ -23,6 +28,10 @@ class GraphWidget(QWidget):
         self.panning = False
         self.pan_start = None
 
+        # self.backgroundLabel = QLabel(self)
+        #self.layout.setStyleSheet("background-image : url(campusMap1.png); border : 2px solid blue") 
+
+
         #self._draw_graph()
         self.highlight_path([])
         self._connect_events()
@@ -30,21 +39,72 @@ class GraphWidget(QWidget):
     def create_graph(self):
         # Create a weighted graph
         G = nx.Graph()
-        G.add_edge('A', 'B', weight=3)
-        G.add_edge('A', 'C', weight=2)
-        G.add_edge('B', 'D', weight=4)
-        G.add_edge('C', 'D', weight=1)
-        G.add_edge('C', 'E', weight=5)
+
+        #   G.add_edge('', '', weight=)
+
+        #AD
+        G.add_edge('AD', 'LH', weight=0)
+        G.add_edge('AD', 'SGMH', weight=1)
+        G.add_edge('AD', 'GH', weight=1)
+        G.add_edge('AD', 'CJ', weight=1)
+        G.add_edge('AD', 'SCPS', weight=0)
+
+
+        #G.add_edge('', '', weight=)
         return G
 
     def custom_node_positions(self):
         # Define exact node positions here
         return {
-            'A': (0, 0),
-            'B': (1, 1),
-            'C': (1, -1),
-            'D': (2, 0),
-            'E': (3, -4),
+                #   x,  Y
+            'AD': (575, 390),    # Admissions
+            'AF': (520, 1140),            # Anderson Family Field
+            'ASC': (45, 634),           # Auxiliary Services Corporation
+            'B': (347, 689),             # Bookstore/TitanShop
+            'CC': (215, 1110),            # Children's Center
+            'CJ': (604, 429),    # Carl's Jr.
+            'CP': (630, 200),            # College Park
+            'CPAC': (360, 544),          # Clayes Performing Arts Center
+            'CS': (700, 735),            # Computer Science
+            'CY': (154, 959),            # Corporation Yard
+            'DBH': (410, 405),           # Dan Black Hall
+            'E': (655, 735),             # Engineering
+            'EC': (570, 630),            # Education Classroom Building
+            'EPS': (760, 520),           # Eastside Parking Structure
+            'EP': (490, 930),            # East Playfield
+            'GAH': (150, 740),           # Golleher Alumni House
+            'GC': (335, 453),                      #Greenhouse Complex
+            'GH': (573, 458),    # Gordan Hall
+            'GF': (485, 1250),            # Goodwin Field
+            'H': (584, 545),             # Humanities-Social Sciences
+            'HRE': (787, 880),           # Housing & Residential Engagement
+            'IF': (430, 930),            # Intramural Fields
+            'KHS': (410, 780),           # Kinesiology & Health Science
+            'LH': (533, 391),    # Langsdorf Hall
+            'MC': (440, 352),            # Modular Complex
+            'MH': (461, 457),            # McCarthy Hall
+            'MS': (580, 940),            # Military Science Leadership Excellence
+            'NPS': (212, 405),           # Nutwood Parking Structure
+            'P': (65, 634),          # Parking & Transportation Services
+            'PL': (477, 648),            # Pollak Library
+            'RG': (655, 870),            # Ruby Gerontology Center
+            'RH': (750, 889),            # Resident Housing
+            'SCPS': (200, 840),          # State College Parking Structure
+            'SGMH': (6260, 330),  # Steven G. Mihaylo Hall
+            # 'SHCC': (),          # Student Health & Counseling Center
+            # 'SRC': (),           # Student Recreation Center
+            # 'TH': (),            # Titan House
+            # 'TDH': (),           # Titan Dining Hall
+            # 'TG': (430, 820),            # Titan Gymnasium
+            # 'TS': (),            # Titan Stadium
+            # 'TSC': (),           # Titan Sports Complex
+            # 'TSF': (),           # Titan Softball Field
+            # 'TSU': (),           # Titan Student Union
+            # 'TTC': (),           # Titan Tennis Courts
+            # 'TTF': (),           # Titan Track & Field
+            # 'UP': (),            # University Police
+            # 'VA': ()            # Visual Arts Center
+
         }
 
     # replaced by highlight draw
@@ -124,9 +184,12 @@ class GraphWidget(QWidget):
         # Draw the graph with custom highlighting
         self.ax.clear()
 
+        #draw background
+        self.ax.imshow(self.img, extent=self.extent, zorder=0)  # <-- BACKGROUND
+
         # Default nodes and edges
-        nx.draw_networkx_nodes(self.graph, self.pos, ax=self.ax, node_color='gray', node_size=600)
-        nx.draw_networkx_edges(self.graph, self.pos, ax=self.ax, edge_color='gray')
+        nx.draw_networkx_nodes(self.graph, self.pos, ax=self.ax, node_color='orange', node_size=300)
+        nx.draw_networkx_edges(self.graph, self.pos, ax=self.ax, edge_color='orange', width=4)
         nx.draw_networkx_labels(self.graph, self.pos, ax=self.ax, font_size=10)
 
         # Draw labels
@@ -142,7 +205,7 @@ class GraphWidget(QWidget):
 
         # Highlight edges in the path
         nx.draw_networkx_edges(self.graph, self.pos, edgelist=edge_path, ax=self.ax,
-                            edge_color='green', width=2.5)
+                            edge_color='green', width=6)
 
         self.canvas.draw()
 
