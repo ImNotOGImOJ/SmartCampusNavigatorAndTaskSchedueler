@@ -47,7 +47,7 @@ class GraphWidget(QWidget):
         G.add_edge('AD', 'SGMH', weight=1)
         G.add_edge('AD', 'GH', weight=1)
         G.add_edge('AD', 'CJ', weight=1)
-        G.add_edge('AD', 'SCPS', weight=0)
+        G.add_edge('AD', 'VA', weight=0)
 
 
         #G.add_edge('', '', weight=)
@@ -89,21 +89,21 @@ class GraphWidget(QWidget):
             'PL': (477, 648),            # Pollak Library
             'RG': (655, 870),            # Ruby Gerontology Center
             'RH': (750, 889),            # Resident Housing
-            'SCPS': (200, 840),          # State College Parking Structure
-            'SGMH': (6260, 330),  # Steven G. Mihaylo Hall
-            # 'SHCC': (),          # Student Health & Counseling Center
-            # 'SRC': (),           # Student Recreation Center
-            # 'TH': (),            # Titan House
-            # 'TDH': (),           # Titan Dining Hall
-            # 'TG': (430, 820),            # Titan Gymnasium
-            # 'TS': (),            # Titan Stadium
-            # 'TSC': (),           # Titan Sports Complex
-            # 'TSF': (),           # Titan Softball Field
-            # 'TSU': (),           # Titan Student Union
-            # 'TTC': (),           # Titan Tennis Courts
-            # 'TTF': (),           # Titan Track & Field
-            # 'UP': (),            # University Police
-            # 'VA': ()            # Visual Arts Center
+            'SCPS': (200, 830),          # State College Parking Structure
+            'SGMH': (608, 352),  # Steven G. Mihaylo Hall
+            'SHCC': (578, 800),          # Student Health & Counseling Center
+            'SRC': (280, 830),           # Student Recreation Center
+            'TH': (91, 596),            # Titan House
+            'TDH': (750, 828),           # Titan Dining Hall
+            'TG': (430, 820),            # Titan Gymnasium
+            'TS': (360, 1200),            # Titan Stadium
+            'TSC': (452, 1108),           # Titan Sports Complex
+            'TSF': (547, 1055),           # Titan Softball Field
+            'TSU': (200, 680),           # Titan Student Union
+            'TTC': (343, 936),           # Titan Tennis Courts
+            'TTF': (415, 1042),           # Titan Track & Field
+            'UP': (150, 820),            # University Police
+            'VA': (175, 580)            # Visual Arts Center
 
         }
 
