@@ -109,7 +109,7 @@ class CampusNavigation(QWidget):
         self.graphWidget = nodes.GraphWidget()
         #self.graphWidget.setMinimumHeight(700)
         #self.graphWidget.setMinimumWidth(400)
-        self.graphWidget.setFixedSize(700, 700)
+        self.graphWidget.setFixedSize(850, 1140)    #700 # 700
         self.start_combo.hoveredItem.connect(self.handle_hover)
         self.dest_combo.hoveredItem.connect(self.handle_hover)
         # self.nodeThread = QThread()                      #move graph widget to thread
