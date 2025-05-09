@@ -1,7 +1,7 @@
 import sys
 from PyQt5.QtWidgets import (QApplication, QWidget, QLineEdit, QComboBox, QPushButton, 
-                            QVBoxLayout, QHBoxLayout, QLabel, QTimeEdit, QScrollArea,
-                            QTableWidget, QTableWidgetItem, QHeaderView, QGridLayout)
+                             QVBoxLayout, QHBoxLayout, QLabel, QTimeEdit, QScrollArea,
+                             QTableWidget, QTableWidgetItem, QHeaderView, QGridLayout)
 from PyQt5.QtCore import Qt, QTime
 
 class Task:
@@ -24,6 +24,27 @@ class Task:
             return 2
         else:  # Low
             return 1
+
+def quick_sort_tasks(tasks, key_func):
+    """In-place quick sort, highest key_func value first."""
+    def partition(lo, hi):
+        pivot = key_func(tasks[hi])
+        i = lo
+        for j in range(lo, hi):
+            if key_func(tasks[j]) > pivot:
+                tasks[i], tasks[j] = tasks[j], tasks[i]
+                i += 1
+        tasks[i], tasks[hi] = tasks[hi], tasks[i]
+        return i
+
+    def _qs(lo, hi):
+        if lo < hi:
+            p = partition(lo, hi)
+            _qs(lo, p - 1)
+            _qs(p + 1, hi)
+
+    _qs(0, len(tasks) - 1)
+    return tasks
 
 class TaskScheduler(QWidget):
     def __init__(self):
@@ -154,9 +175,9 @@ class TaskScheduler(QWidget):
         if not self.tasks:
             self.schedule_results.setText("No tasks to optimize")
             return
-            
-        # Sort tasks by priority (highest first)
-        sorted_tasks = sorted(self.tasks, key=lambda t: t.get_priority_value(), reverse=True)
+        
+        # Use quick sort on a copy of the tasks list, highest priority first
+        sorted_tasks = quick_sort_tasks(self.tasks[:], key_func=lambda t: t.get_priority_value())
         
         # Generate schedule text
         schedule_text = "Optimized Schedule:\n\n"
@@ -172,3 +193,10 @@ class TaskScheduler(QWidget):
         self.main_menu = MainPage()
         self.main_menu.show()
         self.close()
+
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = TaskScheduler()
+    window.show()
+    sys.exit(app.exec_())
