@@ -1,286 +1,154 @@
 import sys
 import networkx as nx
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel
+import matplotlib.image as mpimg
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.backend_bases import MouseEvent
-import matplotlib.image as mpimg
 
 class GraphWidget(QWidget):
+    """Campus map overlay with pan/zoom and path highlighting."""
+
+    MAP_FILE = "campusMap1.png"
+    EXTENT   = [0, 900, 0, 1500]   # [x_min, x_max, y_min, y_max]
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
+        # — Matplotlib setup —
         self.figure = Figure()
         self.canvas = FigureCanvas(self.figure)
-        self.ax = self.figure.add_subplot(111)
+        self.ax     = self.figure.add_subplot(111)
+        self.ax.axis("off")
 
-        self.img = mpimg.imread('campusMap1.png')
-        x_min, x_max, y_min, y_max = 0, 900, 0, 1500
-        self.extent=[x_min, x_max, y_min, y_max]
+        # — Background image —
+        self.img = mpimg.imread(self.MAP_FILE)
+        self.ax.imshow(self.img, extent=self.EXTENT, zorder=0)
 
-        layout = QVBoxLayout()
-        layout.addWidget(self.canvas)
-        self.setLayout(layout)
+        # — Layout —
+        lay = QVBoxLayout()
+        lay.addWidget(self.canvas)
+        self.setLayout(lay)
 
-        self.graph = self.create_graph()
-        self.pos = self.custom_node_positions()
+        # — Graph data —
+        self.graph = self._create_graph()
+        self.pos   = self._node_positions()
 
-        self.panning = False
+        # — Interaction state —
+        self.panning   = False
         self.pan_start = None
 
-        # self.backgroundLabel = QLabel(self)
-        #self.layout.setStyleSheet("background-image : url(campusMap1.png); border : 2px solid blue") 
-
-
-        #self._draw_graph()
+        # — Initial draw & events —
         self.highlight_path([])
         self._connect_events()
 
-    def create_graph(self):
-        # Create a weighted graph
+    def _create_graph(self):
         G = nx.Graph()
-
-        #   G.add_edge('', '', weight=)
-
-        #AD
-        G.add_edge('AD', 'LH', weight=0)
-        G.add_edge('AD', 'SGMH', weight=1)
-        G.add_edge('AD', 'GH', weight=1)
-        G.add_edge('AD', 'CJ', weight=1)
-        G.add_edge('MH', 'LH', weight=3)
-        G.add_edge('MH', 'GH', weight=4)
-        G.add_edge('DBH', 'LH', weight=3)
-        G.add_edge('DBH', 'MH', weight=2)
-        G.add_edge('MH', 'H', weight=4)
-        G.add_edge('MH', 'H', weight=3)
-        G.add_edge('H', 'EPS', weight=20)
-        G.add_edge('GH', 'EPS', weight=20)
-        G.add_edge('H', 'PL', weight=8)
-        G.add_edge('H', 'EC', weight=6)
-        G.add_edge('EPS', 'EC', weight=21)
-        G.add_edge('PL', 'EC', weight=4)
-        G.add_edge('E', 'EC', weight=10)
-        G.add_edge('CS', 'E', weight=1)
-        G.add_edge('CS', 'TDH', weight=6)
-        G.add_edge('E', 'TDH', weight=6)
-        G.add_edge('EPS', 'CS', weight=26)
-        G.add_edge('TDH', 'RG', weight=6)
-        G.add_edge('RH', 'TDH', weight=3)
-        G.add_edge('SHCC', 'RH', weight=4)
-        G.add_edge('SHCC', 'E', weight=4)
-        G.add_edge('SHCC', 'PL', weight=6)
-        G.add_edge('SHCC', 'EC', weight=6)
-        G.add_edge('EP', 'RG', weight=12)
-        G.add_edge('EP', 'SHCC', weight=9)
-        G.add_edge('TG', 'EP', weight=3)
-        G.add_edge('KHS', 'TG', weight=0)
-        G.add_edge('IF', 'TG', weight=3)
-        G.add_edge('IF', 'EP', weight=3)
-        G.add_edge('TTC', 'TTF', weight=2)
-        G.add_edge('TTF', 'IF', weight=2)
-        G.add_edge('TTC', 'IF', weight=3)
-        G.add_edge('TTC', 'TG', weight=3)
-        G.add_edge('EP', 'TSF', weight=4)
-        G.add_edge('TTF', 'TSF', weight=3)
-        G.add_edge('TSC', 'TTF', weight=2)
-        G.add_edge('TSF', 'TSC', weight=3)
-        G.add_edge('TSC', 'AF', weight=2)
-        G.add_edge('GF', 'TSC', weight=4)
-        G.add_edge('GF', 'AF', weight=2)
-        G.add_edge('TS', 'GF', weight=5)
-        G.add_edge('TS', 'TSC', weight=4)
-        G.add_edge('CC', 'TS', weight=10)
-        G.add_edge('TTC', 'CC', weight=13)
-        G.add_edge('TTC', 'CY', weight=12)
-        G.add_edge('TTC', 'SRC', weight=6)
-        G.add_edge('SCPS', 'SRC', weight=1)
-        G.add_edge('CY', 'SCPS', weight=4)
-        G.add_edge('TSU', 'SCPS', weight=4)
-        G.add_edge('TSU', 'B', weight=8)
-        G.add_edge('VA', 'TSU', weight=5)
-        G.add_edge('CY', 'UP', weight=5)
-        G.add_edge('GAH', 'UP', weight=3)
-        G.add_edge('UP', 'SCPS', weight=3)
-        G.add_edge('SCPS', 'GAH', weight=3)
-        G.add_edge('TH', 'TSU', weight=6)
-        G.add_edge('TH', 'VA', weight=3)
-        G.add_edge('ASC', 'TH', weight=2)
-        G.add_edge('VA', 'NPS', weight=5)
-        G.add_edge('TH', 'VA', weight=5)
-        G.add_edge('GC', 'NPS', weight=3)
-        G.add_edge('GC', 'CPAC', weight=3)
-        G.add_edge('CPAC', 'B', weight=6)
-        G.add_edge('CPAC', 'PL', weight=5)
-        G.add_edge('B', 'PL', weight=4)
-        G.add_edge('KHS', 'B', weight=3)
-        G.add_edge('KHS', 'PL', weight=4)
-        G.add_edge('CPAC', 'MH', weight=3)
-
-
-        #G.add_edge('', '', weight=)
+        # All weights are in miles (e.g. 0.05 = 0.05 mi)
+        edges = [
+            ("AD","LH",0.05),("AD","SGMH",0.08),("AD","GH",0.10),("AD","CJ",0.09),
+            ("MH","LH",0.15),("MH","GH",0.15),("DBH","LH",0.16),("DBH","MH",0.06),
+            ("MH","H",0.16),("H","EPS",0.16),("GH","EPS",0.17),("H","PL",0.12),
+            ("H","EC",0.10),("EPS","EC",0.21),("PL","EC",0.10),("E","EC",0.10),
+            ("CS","E",0.50),("CS","TDH",0.10),("E","TDH",0.11),("EPS","CS",0.25),
+            ("TDH","RG",0.12),("RH","TDH",0.09),("SHCC","RH",0.25),("SHCC","E",0.19),
+            ("SHCC","PL",0.24),("SHCC","EC",0.22),("EP","RG",0.20),("EP","SHCC",0.19),
+            ("TG","EP",0.16),("KHS","TG",0.04),("IF","TG",0.13),("IF","EP",0.15),
+            ("TTC","TTF",0.14),("TTF","IF",0.13),("TTC","IF",0.11),("TTC","TG",0.16),
+            ("EP","TSF",0.14),("TTF","TSF",0.14),("TSC","TTF",0.09),("TSF","TSC",0.09),
+            ("TSC","AF",0.09),("GF","TSC",0.11),("GF","AF",0.10),("TS","GF",0.13),
+            ("TS","TSC",0.13),("CC","TS",0.15),("TTC","CC",0.17),("TTC","CY",0.15),
+            ("TTC","SRC",0.12),("SCPS","SRC",0.06),("CY","SCPS",0.10),("TSU","SCPS",0.11),
+            ("TSU","B",0.12),("VA","TSU",0.08),("CY","UP",0.10),("GAH","UP",0.06),
+            ("UP","SCPS",0.04),("SCPS","GAH",0.05),("TH","TSU",0.10),("TH","VA",0.07),
+            ("ASC","TH",0.05),("VA","NPS",0.14),("TH","VA",0.08),("GC","NPS",0.12),
+            ("GC","CPAC",0.07),("CPAC","B",0.09),("CPAC","PL",0.11),("B","PL",0.08),
+            ("KHS","B",0.07),("KHS","PL",0.09),("CPAC","MH",0.09),
+        ]
+        G.add_weighted_edges_from(edges)
         return G
 
-    def custom_node_positions(self):
-        # Define exact node positions here
+    def _node_positions(self):
+        # Pixel coords on campusMap1.png
         return {
-                #   x,  Y
-            'AD': (575, 390),    # Admissions
-            'AF': (520, 1140),            # Anderson Family Field
-            'ASC': (45, 634),           # Auxiliary Services Corporation
-            'B': (347, 689),             # Bookstore/TitanShop
-            'CC': (215, 1110),            # Children's Center
-            'CJ': (604, 429),    # Carl's Jr.
-            'CP': (630, 200),            # College Park
-            'CPAC': (360, 544),          # Clayes Performing Arts Center
-            'CS': (700, 735),            # Computer Science
-            'CY': (154, 959),            # Corporation Yard
-            'DBH': (410, 405),           # Dan Black Hall
-            'E': (655, 735),             # Engineering
-            'EC': (570, 630),            # Education Classroom Building
-            'EPS': (760, 520),           # Eastside Parking Structure
-            'EP': (490, 930),            # East Playfield
-            'GAH': (150, 740),           # Golleher Alumni House
-            'GC': (335, 453),                      #Greenhouse Complex
-            'GH': (573, 458),    # Gordan Hall
-            'GF': (485, 1250),            # Goodwin Field
-            'H': (584, 545),             # Humanities-Social Sciences
-            'HRE': (787, 880),           # Housing & Residential Engagement
-            'IF': (430, 930),            # Intramural Fields
-            'KHS': (410, 780),           # Kinesiology & Health Science
-            'LH': (533, 391),    # Langsdorf Hall
-            'MC': (440, 352),            # Modular Complex
-            'MH': (461, 457),            # McCarthy Hall
-            'MS': (580, 940),            # Military Science Leadership Excellence
-            'NPS': (212, 405),           # Nutwood Parking Structure
-            'P': (65, 634),          # Parking & Transportation Services
-            'PL': (477, 648),            # Pollak Library
-            'RG': (655, 870),            # Ruby Gerontology Center
-            'RH': (750, 889),            # Resident Housing
-            'SCPS': (200, 830),          # State College Parking Structure
-            'SGMH': (608, 352),  # Steven G. Mihaylo Hall
-            'SHCC': (578, 800),          # Student Health & Counseling Center
-            'SRC': (280, 830),           # Student Recreation Center
-            'TH': (91, 596),            # Titan House
-            'TDH': (750, 828),           # Titan Dining Hall
-            'TG': (430, 820),            # Titan Gymnasium
-            'TS': (360, 1200),            # Titan Stadium
-            'TSC': (452, 1108),           # Titan Sports Complex
-            'TSF': (547, 1055),           # Titan Softball Field
-            'TSU': (200, 680),           # Titan Student Union
-            'TTC': (343, 936),           # Titan Tennis Courts
-            'TTF': (415, 1042),           # Titan Track & Field
-            'UP': (150, 820),            # University Police
-            'VA': (175, 580)            # Visual Arts Center
-
+            'AD': (575,390), 'AF': (520,1140), 'ASC':(45,634),  'B':  (347,689),
+            'CC': (215,1110),'CJ': (604,429),  'CP': (630,200),  'CPAC':(360,544),
+            'CS': (700,735), 'CY': (154,959),  'DBH':(410,405), 'E':   (655,735),
+            'EC': (570,630), 'EPS':(760,520),  'EP': (490,930),  'GAH': (150,740),
+            'GC': (335,453), 'GH': (573,458),  'GF': (485,1250), 'H':   (584,545),
+            'HRE':(787,880),'IF': (430,930),  'KHS':(410,780),  'LH':  (533,391),
+            'MC': (440,352), 'MH': (461,457),  'MS': (580,940),  'NPS': (212,405),
+            'P':   (65,634), 'PL': (477,648),  'RG': (655,870),  'RH':  (750,889),
+            'SCPS':(200,830),'SGMH':(608,352), 'SHCC':(578,800),'SRC': (280,830),
+            'TH':  (91,596), 'TDH':(750,828),  'TG': (430,820),  'TS':  (360,1200),
+            'TSC': (452,1108),'TSF':(547,1055),'TSU':(200,680), 'TTC': (343,936),
+            'TTF': (415,1042),'UP': (150,820),  'VA': (175,580),
         }
 
-    # replaced by highlight draw
-    # can be removed
-    # def _draw_graph(self):
-    #     self.ax.clear()
-
-    #     nx.draw(
-    #         self.graph,
-    #         pos=self.pos,
-    #         ax=self.ax,
-    #         with_labels=True,
-    #         node_color='lightgreen',
-    #         edge_color='gray',
-    #         node_size=600,
-    #         font_size=10
-    #     )
-    #     self.canvas.draw()
-
     def _connect_events(self):
-        self.canvas.mpl_connect("scroll_event", self._on_scroll)
-        self.canvas.mpl_connect("button_press_event", self._on_press)
-        self.canvas.mpl_connect("motion_notify_event", self._on_motion)
-        self.canvas.mpl_connect("button_release_event", self._on_release)
+        c = self.canvas.mpl_connect
+        c("scroll_event",        self._on_scroll)
+        c("button_press_event",  self._on_press)
+        c("motion_notify_event", self._on_motion)
+        c("button_release_event",self._on_release)
 
-    def _on_scroll(self, event):
-        base_scale = 1.2
-        scale_factor = base_scale if event.button == 'up' else 1 / base_scale
-
-        xdata = event.xdata
-        ydata = event.ydata
-
-        if xdata is None or ydata is None:
-            return
-
-        cur_xlim = self.ax.get_xlim()
-        cur_ylim = self.ax.get_ylim()
-
-        new_xlim = [xdata - (xdata - cur_xlim[0]) * scale_factor,
-                    xdata + (cur_xlim[1] - xdata) * scale_factor]
-        new_ylim = [ydata - (ydata - cur_ylim[0]) * scale_factor,
-                    ydata + (cur_ylim[1] - ydata) * scale_factor]
-
-        self.ax.set_xlim(new_xlim)
-        self.ax.set_ylim(new_ylim)
+    def _on_scroll(self, ev):
+        sf  = 1.2 if ev.button=='up' else 1/1.2
+        if ev.xdata is None or ev.ydata is None: return
+        x,y = ev.xdata, ev.ydata
+        xl,xr = self.ax.get_xlim(); yl,yr = self.ax.get_ylim()
+        self.ax.set_xlim(x-(x-xl)*sf, x+(xr-x)*sf)
+        self.ax.set_ylim(y-(y-yl)*sf, y+(yr-y)*sf)
         self.canvas.draw()
 
-    def _on_press(self, event: MouseEvent):
-        if event.button != 1 or event.inaxes != self.ax:
-            return
-        self.panning = True
-        self.pan_start = (event.x, event.y)  # Use pixel positions
-        self.orig_xlim = self.ax.get_xlim()
-        self.orig_ylim = self.ax.get_ylim()
+    def _on_press(self, ev: MouseEvent):
+        if ev.button!=1 or ev.inaxes!=self.ax: return
+        self.panning, self.pan_start = True, (ev.x, ev.y)
+        self.orig_xlim, self.orig_ylim = self.ax.get_xlim(), self.ax.get_ylim()
 
-    def _on_motion(self, event: MouseEvent):
-        if self.panning and event.x is not None and event.y is not None:
-            dx = event.x - self.pan_start[0]
-            dy = event.y - self.pan_start[1]
+    def _on_motion(self, ev: MouseEvent):
+        if not self.panning or ev.x is None: return
+        dx,dy = ev.x-self.pan_start[0], ev.y-self.pan_start[1]
+        xl,xr = self.orig_xlim; yl,yr = self.orig_ylim
+        dx_d = dx*(xr-xl)/self.canvas.width()
+        dy_d = dy*(yr-yl)/self.canvas.height()
+        self.ax.set_xlim(xl-dx_d, xr-dx_d)
+        self.ax.set_ylim(yl+dy_d, yr+dy_d)
+        self.canvas.draw()
 
-            dx_data = dx * (self.orig_xlim[1] - self.orig_xlim[0]) / self.canvas.width()
-            dy_data = dy * (self.orig_ylim[1] - self.orig_ylim[0]) / self.canvas.height()
-
-            new_xlim = (self.orig_xlim[0] - dx_data, self.orig_xlim[1] - dx_data)
-            new_ylim = (self.orig_ylim[0] + dy_data, self.orig_ylim[1] + dy_data)  # Y is inverted
-
-            self.ax.set_xlim(new_xlim)
-            self.ax.set_ylim(new_ylim)
-            self.canvas.draw()
-
-    def _on_release(self, event: MouseEvent):
+    def _on_release(self, ev):
         self.panning = False
 
-    def highlight_path(self, path_nodes):
-        edge_path = list(zip(path_nodes[:-1], path_nodes[1:]))
-
-        # Draw the graph with custom highlighting
+    def highlight_path(self, path):
+        """Draw map+graph, highlight nodes in `path` in green."""
         self.ax.clear()
+        self.ax.imshow(self.img, extent=self.EXTENT, zorder=0)
 
-        #draw background
-        self.ax.imshow(self.img, extent=self.extent, zorder=0)  # <-- BACKGROUND
+        # draw all edges & nodes
+        nx.draw_networkx_edges(self.graph, self.pos, ax=self.ax,
+                               edge_color="#aaa", width=2)
+        nx.draw_networkx_nodes(self.graph, self.pos, ax=self.ax,
+                               node_color="#f39c12", node_size=300)
+        nx.draw_networkx_labels(self.graph, self.pos, ax=self.ax,
+                               font_size=8, font_color="white")
 
-        # Default nodes and edges
-        nx.draw_networkx_nodes(self.graph, self.pos, ax=self.ax, node_color='orange', node_size=300)
-        nx.draw_networkx_edges(self.graph, self.pos, ax=self.ax, edge_color='orange', width=4)
-        nx.draw_networkx_labels(self.graph, self.pos, ax=self.ax, font_size=10)
-
-        # Draw labels
-        nx.draw_networkx_labels(self.graph, self.pos, ax=self.ax, font_size=10)
-
-        # Draw edge weights
-        edge_labels = nx.get_edge_attributes(self.graph, 'weight')
-        nx.draw_networkx_edge_labels(self.graph, self.pos, edge_labels=edge_labels, ax=self.ax, font_size=9)
-
-        # Highlight nodes in the path
-        nx.draw_networkx_nodes(self.graph, self.pos, nodelist=path_nodes, ax=self.ax,
-                            node_color='green', node_size=700)
-
-        # Highlight edges in the path
-        nx.draw_networkx_edges(self.graph, self.pos, edgelist=edge_path, ax=self.ax,
-                            edge_color='green', width=6)
+        if path:
+            # highlight edges
+            ed = list(zip(path[:-1], path[1:]))
+            nx.draw_networkx_edges(self.graph, self.pos, ax=self.ax,
+                                   edgelist=ed, edge_color="#27ae60", width=6)
+            # highlight nodes
+            nx.draw_networkx_nodes(self.graph, self.pos, ax=self.ax,
+                                   nodelist=[path[0]], node_color="#2ecc71", node_size=450)
+            nx.draw_networkx_nodes(self.graph, self.pos, ax=self.ax,
+                                   nodelist=[path[-1]], node_color="#e74c3c", node_size=450)
 
         self.canvas.draw()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = GraphWidget()
-    window.setWindowTitle("Smooth Pannable NetworkX Graph in PyQt")
-    window.resize(800, 600)
-    window.show()
+    gw = GraphWidget()
+    gw.resize(800,600)
+    gw.show()
     sys.exit(app.exec_())
